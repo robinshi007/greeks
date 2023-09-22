@@ -18,7 +18,9 @@ const PositionForm = () => {
   const [filteredInstruments] = useAtom(filteredInstrumentsAtom)
   const [positions, updatePositions] = useAtom(positionRwAtom)
 
-  useEffect(() => updateInstruments, [])
+  useEffect(() => {
+    updateInstruments()
+  }, [])
 
   const onFormBuy = (e) => {
     if (filteredInstruments && filteredInstruments.length == 1) {
