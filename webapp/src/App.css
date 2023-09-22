@@ -1,0 +1,25 @@
+.demo-logo {
+  width: 120px;
+  /* background: rgba(255,255,255,.2); */
+  color: #eee;
+  font-size: 22px;
+  font-weight: 600;
+  padding-left: 12px;
+  border-radius: 6px;
+}
+.demo-logo > a {
+  color: #4096ff;
+}
+
+.ant-tabs {
+  width: 100%;
+  height: 100%;
+}
+
+.ant-tabs-tabpane {
+  height: 100%;
+}
+
+.ant-tabs-content-holder {
+  display: flex;
+}
