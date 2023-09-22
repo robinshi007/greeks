@@ -67,6 +67,9 @@ export const positionWAtom = atom(
     set(positionAtom, newPositions)
   }
 )
+export const positionCountAtom = atom((get) => {
+  return get(positionAtom).length
+})
 export const positionNeedUpdateAtom = atom((get) => {
   return get(positionAtom).some((p) => p.iv == 0.0 && p.delta == 0.0)
 })

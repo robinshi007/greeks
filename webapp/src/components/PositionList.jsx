@@ -1,6 +1,6 @@
 import { Card, Table, Button, Tooltip, Popconfirm } from "antd"
 import { DeleteOutlined, ReloadOutlined } from "@ant-design/icons";
-import { positionWAtom, positionRwAtom, refreshPositionAtom, positionNeedUpdateAtom } from "../store/positionStore"
+import { positionWAtom, positionRwAtom, refreshPositionAtom, positionNeedUpdateAtom, positionCountAtom } from "../store/positionStore"
 import { useAtom } from "jotai"
 import { useEffect, useRef } from "react";
 
@@ -11,6 +11,7 @@ const PositionList = () => {
   const [, resetPositions] = useAtom(positionWAtom)
   const [, refreshPositions] = useAtom(refreshPositionAtom)
   const [positionNeedUpdate] = useAtom(positionNeedUpdateAtom)
+  const [positionCount] = useAtom(positionCountAtom)
 
   const handleDelete = (key) => {
     const newPositions = positions.filter((item) => item.key !== key);
@@ -93,16 +94,20 @@ const PositionList = () => {
     }
   ]
 
+  // useEffect(() => {
+  //   timer.current = setInterval(() => {
+  //     if (positionNeedUpdate) {
+  //       refreshPositions()
+  //     }
+  //   }, 3000)
+  //   return () => {
+  //     clearInterval(timer.current)
+  //   }
+  // }, [positionNeedUpdate, refreshPositions])
+
   useEffect(() => {
-    timer.current = setInterval(() => {
-      if (positionNeedUpdate) {
-        refreshPositions()
-      }
-    }, 3000)
-    return () => {
-      clearInterval(timer.current)
-    }
-  }, [positionNeedUpdate, refreshPositions])
+    refreshPositions()
+  }, [positionCount, refreshPositions])
 
   console.log('---', positions)
 

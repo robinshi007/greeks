@@ -23,7 +23,7 @@ const PositionForm = () => {
   }, [])
 
   const onFormBuy = (e) => {
-    if (filteredInstruments && filteredInstruments.length == 1) {
+    if (filteredInstruments && filteredInstruments.length == 1 && amount != 0.0) {
       const instrument = filteredInstruments[0]
       // console.log('buy', instrument.instrument_name, amount)
       updatePositions({
@@ -47,7 +47,7 @@ const PositionForm = () => {
   }
 
   const onFormSell = (e) => {
-    if (filteredInstruments && filteredInstruments.length == 1) {
+    if (filteredInstruments && filteredInstruments.length == 1 && amount != 0.0) {
       const instrument = filteredInstruments[0]
       // console.log('sell', instrument.instrument_name, amount)
       updatePositions({
