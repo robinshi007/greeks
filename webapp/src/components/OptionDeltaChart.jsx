@@ -1,31 +1,34 @@
 import ReactEChart from 'echarts-for-react'
 import { useAtom } from 'jotai';
-import { indexPriceAtom, isCombinedPositionAtom, positionAssetAtom, positionAssetPriceAtom, positionRwAtom } from '../store/positionStore';
-import { useEffect } from 'react';
+import { indexPricesAtom, positionRwAtom } from '../store/positionStore';
+import { useEffect, useRef } from 'react';
 import { deltaChartOptonRwAtom, generateDeltaData } from '../store/deltaChartStore';
 
 
-const OptionDeltaChart = () => {
-
-  const [isCombinedPosition] = useAtom(isCombinedPositionAtom)
-  const [asset] = useAtom(positionAssetAtom)
-  const [assetPrice] = useAtom(positionAssetPriceAtom)
+const OptionDeltaChart = ({ asset }) => {
+  const ref = useRef(null)
+  const [indexPrices] = useAtom(indexPricesAtom)
   const [positions] = useAtom(positionRwAtom)
   const [deltaChartOption, updateDeltaChartOption] = useAtom(deltaChartOptonRwAtom)
 
   useEffect(() => {
-    updateDeltaChartOption(isCombinedPosition ? [] : generateDeltaData(assetPrice, positions))
-  }, [positions, assetPrice, isCombinedPosition, updateDeltaChartOption])
+    console.log('ref', ref)
+    if (ref.current) {
+      updateDeltaChartOption(
+        asset,
+        generateDeltaData(
+          indexPrices[asset],
+          positions.filter((p) => p.asset == asset)
+        ),
+        indexPrices[asset],
+        ref.current.getEchartsInstance().getOption(),
+      )
+    }
+  }, [asset, positions, indexPrices, updateDeltaChartOption])
 
   return (
     <>
-      {
-        assetPrice != '' ? (
-          <ReactEChart option={deltaChartOption} style={{ height: '100%' }} />
-        ) : (
-          <ReactEChart option={deltaChartOption} style={{ height: '100%' }} />
-        )
-      }
+      <ReactEChart option={deltaChartOption[asset]} notMerge={true} lazyUpdate={true} ref={ref} style={{ height: '400px' }} />
     </>
   )
 }

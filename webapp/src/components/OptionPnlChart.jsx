@@ -1,49 +1,34 @@
-
 import ReactEChart from 'echarts-for-react'
 import { useAtom } from 'jotai';
-import { indexPriceAtom, isCombinedPositionAtom, positionAssetAtom, positionAssetPriceAtom, positionRwAtom } from '../store/positionStore';
-import { useEffect } from 'react';
-import { generatePnlData, isCoinSettleCurrencydAtom, pnlChartOptonRwAtom, settleCurrencyRwAtom } from '../store/pnlChartStore';
-import { Switch, Tooltip } from 'antd';
+import { indexPricesAtom, positionAssetsAtom, positionRwAtom, selectedIndexPricesAtom } from '../store/positionStore';
+import { useEffect, useRef } from 'react';
+import { generatePnlData, isCoinSettleCurrencyAtom, pnlChartOptionRwAtom, settleCurrencyRwAtom } from '../store/pnlChartStore';
 
 
-const OptionPnlChart = () => {
-
-  const [isCombinedPosition] = useAtom(isCombinedPositionAtom)
-  const [assetPrice] = useAtom(positionAssetPriceAtom)
+const OptionPnlChart = ({ asset }) => {
+  const ref = useRef(null)
+  const [indexPrices] = useAtom(indexPricesAtom)
+  const [selectedIndexPrices] = useAtom(selectedIndexPricesAtom)
   const [positions] = useAtom(positionRwAtom)
-  const [pnlChartOption, updatePnlChartOption] = useAtom(pnlChartOptonRwAtom)
+  const [pnlChartOption, updatePnlChartOption] = useAtom(pnlChartOptionRwAtom)
 
-  const [settleCurrency, updateSettleCurreny] = useAtom(settleCurrencyRwAtom)
-  const [isCoinSettleCurrency] = useAtom(isCoinSettleCurrencydAtom)
+  const [isCoinSettleCurrency] = useAtom(isCoinSettleCurrencyAtom)
 
   useEffect(() => {
-    updatePnlChartOption(
-      isCombinedPosition ? [] : generatePnlData(assetPrice, positions, isCoinSettleCurrency),
-      Array.from(new Set(positions.map((p) => p.strike))),
-    )
-  }, [assetPrice, positions, isCoinSettleCurrency, isCombinedPosition, updatePnlChartOption])
-
-  const onSwitchChange = (e) => {
-    if (e) {
-      updateSettleCurreny("COIN")
-    } else {
-      updateSettleCurreny("USD")
+    if (ref.current) {
+      updatePnlChartOption(
+        asset,
+        generatePnlData(indexPrices[asset], positions.filter((p) => p.asset == asset), isCoinSettleCurrency),
+        Array.from(new Set(positions.filter((p) => p.asset == asset).map((p) => p.strike).filter((s) => s && s > 0))),
+        selectedIndexPrices[asset],
+        ref.current.getEchartsInstance().getOption(),
+      )
     }
-  }
+  }, [asset, indexPrices, selectedIndexPrices, positions, isCoinSettleCurrency, updatePnlChartOption])
 
   return (
     <>
-      <Tooltip title='settlement currency'>
-        <Switch checkedChildren="COIN" unCheckedChildren="USD" defaultChecked={false} onChange={onSwitchChange} />
-      </Tooltip>
-      {
-        assetPrice != '' ? (
-          <ReactEChart option={pnlChartOption} style={{ height: '100%' }} />
-        ) : (
-          <ReactEChart option={pnlChartOption} style={{ height: '100%' }} />
-        )
-      }
+      <ReactEChart option={pnlChartOption[asset]} notMerge={true} lazyUpdate={true} style={{ height: '380px' }} ref={ref} />
     </>
   )
 }

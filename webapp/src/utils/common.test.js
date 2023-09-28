@@ -1,4 +1,4 @@
-import { getPriceLimits, getPriceRange, getPriceRangeWithRound, isPromise, round } from "./common"
+import { getAssetFromSymbol, getPriceLimits, getPriceRange, getPriceRangeWithRound, isPromise, round } from "./common"
 
 test('isPromise', () => {
   const promise = new Promise((resolve, reject) => { })
@@ -30,6 +30,12 @@ test('getPriceLimits', () => {
 
 test('getPriceRange', () => {
   expect(getPriceRange(100, 2, 10)).toStrictEqual([0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200])
+})
+
+test('getAssetFromSymbol', () => {
+  expect(getAssetFromSymbol('BTC-29SEP23-27500-C')).toBe('BTC')
+  expect(getAssetFromSymbol('ETH-29SEP23')).toBe('ETH')
+  expect(getAssetFromSymbol('ETHUSDT')).toBe('ETH')
 })
 
 // test('getPriceRangeWithRound', () => {

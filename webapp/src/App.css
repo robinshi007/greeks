@@ -23,3 +23,8 @@
 .ant-tabs-content-holder {
   display: flex;
 }
+.editable-row .ant-form-item-explain {
+  position: absolute;
+  top: 100%;
+  font-size: 12px;
+}

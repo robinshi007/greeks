@@ -12,11 +12,11 @@ export const baseCurrencyRAtom = atom(
     }
   }
 )
-export const isCoinBaseCurrencydAtom = atom(
+export const isCoinBaseCurrencyAtom = atom(
   (get) => get(baseCurrencyAtom) == 'COIN',
 )
 export const settleCurrencyAtom = atom('USD')
-export const isCoinSettleCurrencydAtom = atom(
+export const isCoinSettleCurrencyAtom = atom(
   (get) => get(settleCurrencyAtom) == 'COIN',
 )
 export const settleCurrencyRwAtom = atom(
@@ -30,7 +30,7 @@ export const settleCurrencyRwAtom = atom(
   }
 )
 
-export const pnlChartOptonAtom = atom({
+const defaultPnlChartOption = {
   animation: false,
   tooltip: {
     trigger: 'axis'
@@ -43,11 +43,6 @@ export const pnlChartOptonAtom = atom({
   },
   toolbox: {
     feature: {
-      // dataZoom: {
-      //   yAxisIndex: 'none'
-      // },
-      // restore: {},
-      // saveAsImage: {}
     }
   },
   xAxis: {
@@ -81,14 +76,29 @@ export const pnlChartOptonAtom = atom({
       data: [],
     }
   ],
+}
+export const pnlChartOptionAtom = atom({
+  "BTC": {
+    ...defaultPnlChartOption,
+  },
+  "ETH": {
+    ...defaultPnlChartOption,
+  }
 })
-export const pnlChartOptonRwAtom = atom(
-  (get) => get(pnlChartOptonAtom),
-  (get, set, data, strikes) => {
-    let option = get(pnlChartOptonAtom)
-    option = {
-      ...option,
+export const pnlChartOptionRwAtom = atom(
+  (get) => get(pnlChartOptionAtom),
+  (get, set, asset, data, strikes, selectedIndexPrice, previousOption) => {
+    let option = get(pnlChartOptionAtom)
+    // console.log('old Option', previousOption)
+    const newOption = {
+      ...option[asset],
       ...{
+        "dataZoom": previousOption.dataZoom
+      },
+      ...{
+        title: {
+          text: asset
+        },
         series: [
           {
             type: 'line',
@@ -96,30 +106,56 @@ export const pnlChartOptonRwAtom = atom(
             clip: true,
             data: data,
             markLine: {
-              data: strikes.map((s) => {
-                return {
-                  name: "strike price",
-                  xAxis: s,
-                  lineStyle: {
-                    normal: {
-                      type: 'dashed',
-                      color: '#1e90ff',
-                    }
-                  },
-                }
+              data: strikes.map((s) => ({
+                name: "Strike price",
+                xAxis: s,
+                label: {
+                  formatter: '{b}: {c}',
+                  show: true,
+                  position: 'insideMiddleTop',
+
+                  color: '#1e90ff',
+                  fontWeight: 'bold',
+                },
+                lineStyle: {
+                  normal: {
+                    type: 'dashed',
+                    color: '#1e90ff',
+                  }
+                },
+              })).concat({
+                symbol: 'none',
+                name: "Simulated price",
+                label: {
+                  formatter: '{b}: {c}',
+                  show: true,
+                  // position: 'insideMiddleTop',
+                  color: 'red',
+                  fontWeight: 'bold',
+                },
+                xAxis: typeof selectedIndexPrice == 'number' ? selectedIndexPrice : 0,
+                lineStyle: {
+                  normal: {
+                    type: 'solid',
+                    color: 'red',
+                  }
+                },
               }),
             }
           }
         ]
       }
     }
-    set(pnlChartOptonAtom, option)
+
+    // console.log('new Option', newOption)
+    set(pnlChartOptionAtom, { ...option, ...{ [asset]: newOption } })
   }
 )
 
 
-const getPositionPnl = (S, Mc, K, T, r, sigma, amount, option_type, side, isCoinSettleCurrency) => {
+const getPositionPnl = (S, Mtc, Mcc, K, T, r, sigma, amount, option_type, side, isCoinSettleCurrency) => {
   let res = 0
+  const Mc = Mtc != 0.0 ? Mtc : Mcc
   if (isCoinSettleCurrency) {
     if (['call', 'C'].includes(option_type)) {
       if (side == 'buy') {
@@ -153,22 +189,25 @@ const getPositionPnl = (S, Mc, K, T, r, sigma, amount, option_type, side, isCoin
   return res * amount
 }
 
-const getPositionsPnl = (S, r, now_ms, positions, isCoinSettleCurrency) => {
+export const getPositionsPnl = (S, r, now_ms, positions, isCoinSettleCurrency) => {
   return positions.reduce((acc, p) => {
     const T = (p.expiration_timestamp - now_ms) / (1000 * 60 * 60 * 24 * 365)
-    return acc + getPositionPnl(S, p.mark_price_c, p.strike, T, r, p.iv, p.amount, p.option_type, p.side, isCoinSettleCurrency)
+    return acc + getPositionPnl(S, p.mark_price_tc, p.mark_price_c, p.strike, T, r, p.iv, p.amount, p.option_type, p.side, isCoinSettleCurrency)
   }, 0)
 }
 
 export const generatePnlData = (assetPrice, positions, isCoinSettleCurrency) => {
-  const assetPriceRange = getPriceRangeWithRound(assetPrice, 2.5)
-  const now_ms = (new Date()).getTime()
-  if (positions.length > 0) {
-    const r = 0.0
-    return assetPriceRange.map((S) => {
-      return [S, getPositionsPnl(S, r, now_ms, positions, isCoinSettleCurrency)]
-    })
-  } else {
-    return []
+  if (assetPrice) {
+    const assetPriceRange = getPriceRangeWithRound(assetPrice, 2)
+    const now_ms = (new Date()).getTime()
+    if (positions.length > 0) {
+      const r = 0.0
+      return assetPriceRange.map((S) => {
+        return [S, getPositionsPnl(S, r, now_ms, positions, isCoinSettleCurrency)]
+      })
+    } else {
+      return []
+    }
   }
+  return []
 }

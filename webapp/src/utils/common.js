@@ -14,6 +14,15 @@ export const round = (num, decimal = 1) => {
   return Math.round(num * multiplier) / multiplier
 }
 
+export const getAssetFromSymbol = (symbol) => {
+  const parts = symbol.split('-')
+  if (parts.length == 1) {
+    return parts[0].slice(0, 3).toUpperCase()
+  } else if (parts.length >= 2) {
+    return parts[0].toUpperCase()
+  }
+}
+
 export const getPriceLimits = (indexPrice, ratio = 3) => {
   // return [indexPrice / ratio, indexPrice * ratio]
   return [0, indexPrice * ratio]
@@ -32,10 +41,10 @@ export const getPriceRange = (indexPrice, ratio = 2, partsNum = 100) => {
   return res
 }
 
-export const getPriceRangeWithRound = (indexPrice, ratio = 2) => {
-  const step = indexPrice > 50000 ? 500 :
-    indexPrice > 40000 ? 400 :
-      indexPrice > 30000 ? 300 :
+export const getPriceStep = (indexPrice) => {
+  return indexPrice > 50000 ? 500 :
+    indexPrice > 40000 ? 200 :
+      indexPrice > 30000 ? 200 :
         indexPrice > 20000 ? 100 :
           indexPrice > 10000 ? 100 :
             indexPrice > 9000 ? 90 :
@@ -55,6 +64,11 @@ export const getPriceRangeWithRound = (indexPrice, ratio = 2) => {
                                         indexPrice > 400 ? 4 :
                                           indexPrice > 300 ? 3 :
                                             indexPrice > 200 ? 2 : 1
+
+}
+
+export const getPriceRangeWithRound = (indexPrice, ratio = 2) => {
+  const step = getPriceStep(indexPrice)
   let res = []
   const [min, max] = getPriceLimits(indexPrice, ratio)
   const partsNum = round(max / step);
@@ -65,3 +79,13 @@ export const getPriceRangeWithRound = (indexPrice, ratio = 2) => {
   res.push(max)
   return res
 }
+
+export const toFixed = (num, decimal = 2) => {
+  if (typeof num == 'number') {
+    return parseFloat(num).toFixed(decimal)
+  } else {
+    console.log(`cannot use tofixed() for type ${typeof num}`)
+    return num
+  }
+}
+

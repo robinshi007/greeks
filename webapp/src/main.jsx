@@ -12,11 +12,13 @@ const logError = (error, info) => {
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  (<div>
     <HashRouter>
       <ErrorBoundary FallbackComponent={Fallback} onError={logError}>
         <App />
       </ErrorBoundary>
     </HashRouter>
-  </React.StrictMode>,
+  </div>)
 )
+  // {/* <React.StrictMode> */ }
+  // {/*</React.StrictMode>, */ }

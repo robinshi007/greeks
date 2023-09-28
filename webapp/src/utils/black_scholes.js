@@ -176,15 +176,22 @@ const BS = {
       return this.prho(S, K, T, r, sigma)
     }
   },
-  iv: function(S, K, T, r, mark_price, type = 'call', max_iteration = 1000, tol = 0.0002, initial_guess = 0.5) {
+  iv: function(S, K, T, r, mark_price, type = 'call', max_iteration = 200, tol = 0.00001, initial_guess = 0.5) {
+    const minLimit = 1.0e-10
     let sigma = initial_guess
+    // Manaster and Koehler intial vol value
+    // let sigma = Math.sqrt(Math.abs(Math.log(S / K) + r * T) * 2)
+    sigma = Math.max(sigma, minLimit)
     for (let i = 0; i < max_iteration; i++) {
-      const price = (type == 'call' || type == 'C') ? this.call(S, K, T, r, sigma) : this.put(S, K, T, r, sigma)
-      const delta_price = price - mark_price
-      if (Math.abs(delta_price) < tol) {
+      const price = this.price(S, K, T, r, sigma, type)
+      const vega = this.vega(S, K, T, r, sigma)
+      const price_diff = mark_price - price
+      if (Math.abs(price_diff) < tol || vega < minLimit) {
         break
       }
-      sigma = sigma - delta_price / this.vega(S, K, T, r, sigma)
+      sigma = sigma + price_diff / vega
+      // console.log('delta price', price_diff, price, mark_price, 'sigma=', sigma, 'vega', vega)
+      // sigma = Math.max(sigma, minLimit)
     }
     return sigma
   }

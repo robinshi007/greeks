@@ -1,14 +1,8 @@
 import { atom } from "jotai";
 import { atomWithStorage } from 'jotai/utils'
 import BS from "../utils/black_scholes";
+import { getAssetFromSymbol } from "../utils/common";
 
-
-const getAssetName = (instrument_name) => {
-  if (instrument_name) {
-    return instrument_name.split('-')[0]
-  }
-  return ''
-}
 
 const getTickerUrl = (symbol) => {
   return `https://www.deribit.com/api/v2/public/ticker?instrument_name=${symbol}`
@@ -60,7 +54,8 @@ const getTicker = async (price_index) => {
 // indexPrice
 
 // position
-export const positionAtom = atomWithStorage('greeks_positions', [])
+// export const positionAtom = atomWithStorage('greeks_positions', [])
+export const positionAtom = atom([])
 export const positionWAtom = atom(
   null,
   (get, set, newPositions) => {
@@ -73,6 +68,12 @@ export const positionCountAtom = atom((get) => {
 export const positionNeedUpdateAtom = atom((get) => {
   return get(positionAtom).some((p) => p.iv == 0.0 && p.delta == 0.0)
 })
+export const ethBTCPriceAtom = atom(0)
+export const ethBTCPriceRwAtom = atom(
+  (get) => get(ethBTCPriceAtom),
+  (get, set, newValue) => set(ethBTCPriceAtom, newValue),
+)
+
 
 export const positionRwAtom = atom(
   (get) => get(positionAtom),
@@ -89,7 +90,11 @@ export const positionRwAtom = atom(
     })
     if (findedIndex > -1) {
       if (position[findedIndex].side == newValue.side && newValue.amount > 0.0) {
-        position[findedIndex].amount += newValue.amount
+        position[findedIndex].amount = newValue.amount
+        if (newValue.cost && typeof newValue.cost == 'number') {
+          position[findedIndex].cost = newValue.cost
+          position[findedIndex].mark_price_tc = newValue.cost / position[findedIndex].amount
+        }
         // console.log('update position', position)
         set(positionAtom, [...position])
       }
@@ -99,6 +104,7 @@ export const positionRwAtom = atom(
         side: newValue.side,
         kind: newValue.kind,
         instrument_name: newValue.instrument_name,
+        asset: getAssetFromSymbol(newValue.instrument_name),
         amount: newValue.amount,
         expiration_str: newValue.expiration_str,
         expiration_timestamp: newValue.expiration_timestamp,
@@ -107,6 +113,9 @@ export const positionRwAtom = atom(
         counter_currency: newValue.counter_currency,
         price_index: newValue.price_index,
         option_type: newValue.option_type,
+        // need input
+        cost: 0.0,
+        mark_price_tc: 0.0,
         // need fetch
         strike: newValue.strike,
         index_price: 0.0,
@@ -126,21 +135,44 @@ export const positionRwAtom = atom(
   }
 )
 
+export const indexPricesAtom = atom({})
+export const indexPricesRwAtom = atom(
+  (get) => get(indexPricesAtom),
+  (get, set, newValue) => {
+    set(indexPricesAtom, { ...get(indexPricesAtom), ...newValue })
+  }
+)
+
+export const selectedIndexPricesAtom = atom({})
+export const selectedIndexPricesRwAtom = atom(
+  (get) => get(selectedIndexPricesAtom),
+  (get, set, newValue) => {
+    set(selectedIndexPricesAtom, { ...get(selectedIndexPricesAtom), ...newValue })
+  }
+)
+//   (get) => {
+//     const positions = get(positionAtom)
+//   }
+// )
+
 
 export const refreshPositionAtom = atom(
   null,
   async (get, set) => {
+    console.log('----------- hit refresh')
     const positions = get(positionAtom)
     // const assets = Array.from(new Set(positions.map((p) => p.quote_currency)))
     // let dvolTasks = assets.map((d) => getDVol(d))
     const instrument_names = Array.from(new Set(positions.map((p) => p.instrument_name)))
-    let instrumentTasks = instrument_names.map((p) => getTicker(p))
+    let instrumentTasks = instrument_names.concat('ETH_BTC').map((p) => getTicker(p))
     const result = await Promise.all(instrumentTasks)
 
     let cache = {}
     instrument_names.forEach((a, i) => {
       cache[a] = result[i]
     })
+
+    set(ethBTCPriceAtom, result[result.length - 1].index_price)
 
     let newPositions = []
     for (const p of positions) {
@@ -150,7 +182,7 @@ export const refreshPositionAtom = atom(
       const r = 0.0
       const mark_price = cache[p.instrument_name].mark_price * cache[p.instrument_name].index_price
       const sigma = mark_price != 0.0 ? BS.iv(S, K, T, r, mark_price, p.option_type) : 0.0
-      console.log('[bs]', S, K, T, r, mark_price, p.option_type, sigma, cache[p.instrument_name].mark_iv)
+      // console.log('[bs]', S, K, T, r, mark_price, p.option_type, sigma, cache[p.instrument_name].mark_iv)
       const isCall = p.option_type == 'call'
       const theta = mark_price != 0.0 ? isCall ? BS.ctheta(S, K, T, r, sigma) : BS.ptheta(S, K, T, r, sigma) : 0.0
       const vega = mark_price != 0.0 ? BS.vega(S, K, T, r, sigma) : 0.0
@@ -170,44 +202,21 @@ export const refreshPositionAtom = atom(
         theta_per_day: theta / 365,
       })
     }
+
+    let prices = {}
+    for (let p of newPositions) {
+      prices[p.quote_currency] = p.index_price
+    }
+    set(indexPricesAtom, prices)
+    set(selectedIndexPricesAtom, prices)
     set(positionAtom, newPositions)
   }
 )
 
-export const indexPriceAtom = atom(
-  (get) => {
-    const positions = get(positionAtom)
-    let res = {}
-    for (let p of positions) {
-      res[p.quote_currency] = p.index_price
-    }
-    return res
-  }
-)
 
-export const isCombinedPositionAtom = atom((get) => {
+export const positionAssetsAtom = atom((get) => {
   const assets = Array.from(new Set(get(positionAtom).map((p) => p.quote_currency)))
-  return assets.length > 1 ? true : false
+  return assets
 })
 
-export const positionAssetAtom = atom((get) => {
-  if (get(isCombinedPositionAtom)) {
-    return ''
-  } else {
-    const keys = Object.keys(get(indexPriceAtom))
-    if (keys.length > 0) {
-      return keys[0]
-    } else {
-      return ''
-    }
-  }
-})
-export const positionAssetPriceAtom = atom((get) => {
-  const prices = get(indexPriceAtom)
-  const asset = get(positionAssetAtom)
-  if (prices && Object.keys(prices).includes(asset)) {
-    return prices[asset]
-  } else {
-    return ''
-  }
-})
+

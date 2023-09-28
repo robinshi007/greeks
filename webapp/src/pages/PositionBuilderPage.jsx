@@ -1,27 +1,28 @@
 import { useAtom } from "jotai"
 import { Button, Card, Col, Form, InputNumber, Row, Select, Spin, Tabs } from "antd"
 import PositionList from "../components/PositionList"
-import { indexPriceAtom, isCombinedPositionAtom, positionRwAtom } from "../store/positionStore"
-import OptionPnlChart from "../components/OptionPnlChart"
-import OptionDeltaChart from "../components/OptionDeltaChart"
+import { ethBTCPriceRwAtom, indexPricesAtom, positionAssetsAtom, positionRwAtom } from "../store/positionStore"
+// import OptionDeltaChart from "../components/OptionDeltaChart"
 import PositionForm from "../components/PositionForm"
-import { settleCurrencyRwAtom } from "../store/pnlChartStore"
+import { isCoinSettleCurrencyAtom, settleCurrencyRwAtom } from "../store/pnlChartStore"
+import PnlCharts from "../components/PnlCharts"
+import DeltaCharts from "../components/DeltaCharts"
 
 const PositionBuilderPage = () => {
-  const [indexPrices] = useAtom(indexPriceAtom)
-  const [isCombinedPosition] = useAtom(isCombinedPositionAtom)
-  const [settleCurrency] = useAtom(settleCurrencyRwAtom)
+  const [indexPrices] = useAtom(indexPricesAtom)
+  const [isCoinSettleCurrency] = useAtom(isCoinSettleCurrencyAtom)
+  const [ethBTCPrice] = useAtom(ethBTCPriceRwAtom)
 
   const tabItems = [
     {
       key: '1',
-      label: 'Pnl view',
-      children: <OptionPnlChart />,
+      label: 'PNL view',
+      children: <PnlCharts />,
     },
     {
       key: '2',
       label: 'Delta view',
-      children: <OptionDeltaChart />,
+      children: <DeltaCharts />,
     },
   ];
   const onTabChange = (key) => {
@@ -37,7 +38,7 @@ const PositionBuilderPage = () => {
         }}>
           <div className="side" style={{
             width: '300px',
-            marginRight: '12px'
+            marginRight: '12px',
           }}>
             <PositionForm />
           </div>
@@ -52,11 +53,11 @@ const PositionBuilderPage = () => {
         <Col span={24}>
           <PositionList />
         </Col>
-        {/*<Col>
-          <div>{JSON.stringify(indexPrices)} {JSON.stringify(isCombinedPosition)}</div>
-          <div>{JSON.stringify(settleCurrency)}</div>
-        </Col>
-*/}
+        {/* <Col>
+          <div>{JSON.stringify(indexPrices)} {JSON.stringify(isCoinSettleCurrency)}</div>
+          <div>{ethBTCPrice} </div>
+      </Col>
+        */}
       </Row>
       {/* debug here */}
       {/*<div>{selectedAsset}{selectedExpireStr}{selectedStrike} </div> */}
